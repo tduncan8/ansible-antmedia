@@ -1,0 +1,13 @@
+
+# define login details
+admin_user: 'admin'
+admin_pass: 'password'
+
+# install directory for antmedia to go
+install_dir: "/usr/local/src/antmedia"
+
+# github repository information to pull from
+repo_owner: "ant-media"
+repo_name: "Ant-Media-Server"
+
+

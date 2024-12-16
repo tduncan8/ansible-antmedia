@@ -1,0 +1,59 @@
+--- # installer for antmedia
+
+- name: "check antmedia release"
+  uri:
+    url: "https://api.github.com/repos/{{ repo_owner }}/{{ repo_name }}/releases/latest"
+    method: GET
+    headers:
+      Accept: "application/vnd.github.v3+json"
+    return_content: true
+  register: github_release
+- name: Parse the latest release version
+  set_fact:
+     latest_version: "{{ github_release.json.tag_name | regex_replace('^.*?-v', '')  }}"
+- name: "Create antmedia install directory: {{ install_dir }}"
+  file:
+    path: "{{ install_dir }}"
+    state: directory
+    mode: '755'
+    owner: root
+    group: root
+- name: "Get antmedia release package: {{ lastest_version }}"
+  get_url: 
+    url: "https://github.com/{{ repo_owner }}/{{ repo_name }}/releases/download/ams-v{{ latest_version }}/ant-media-server-community-{{ latest_version }}.zip"
+    dest: "{{ install_dir }}/antmedia.zip"
+- name: "Get installer script"
+  get_url: 
+    url: "https://raw.githubusercontent.com/{{ repo_owner }}/Scripts/master/install_ant-media-server.sh"
+    dest: "{{ install_dir }}/install_antmedia.sh"
+    mode: '0770'
+    owner: root
+    group: root
+- name: "Run installer"
+  command: './install_antmedia.sh ant*.zip'
+    args:
+    chdir: "{{ install_dir }}"
+- name: "Pause for antmedia server to actually start up"
+  pause:
+        minutes: 2
+- name: "Get Admin URL cookies"
+  uri:
+    url: http://127.0.0.1:5080
+    method: GET
+    delegate_to: 127.0.0.1
+    register: http_login
+- name: "Register Admin User"
+  uri:
+    url: "http://localhost:5080/rest/v2/users/initial"
+    method: POST
+    body_format: json
+    body: "{'email':'{{ admin_user }}','password':'{{ admin_pass | hash('md5') }}','fullName':'{{ admin_user }}'}"
+    headers:
+      Cookie: "{{ http_login.cookies_string }}"
+- name: "Restart & enable antmedia service"
+  systemd:
+    name: antmedia.service
+    state: restarted
+    daemon_reload: yes
+       enabled: yes
+       masked: no
