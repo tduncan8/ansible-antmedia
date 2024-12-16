@@ -1,7 +1,7 @@
 ---
 # this playbook installs the antmedia community streaming server
-- name: "apply streaming server"
-  hosts: all
+- name: "Configure and antmedia streaming server"
+  hosts: streamingservers 
   remote_user: root
   roles:
     - streaming-server
